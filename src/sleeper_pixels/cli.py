@@ -82,15 +82,8 @@ def run(args: argparse.Namespace, console: Console) -> None:
     current_season = str(state.get("season", "2024"))
     season = args.season or current_season
 
-    # Determine max week
-    if args.week:
-        max_week = args.week
-    elif season != current_season:
-        # Past season - use full 17 weeks
-        max_week = 17
-    else:
-        # Current season - use current week
-        max_week = state.get("week", 17)
+    # We'll determine max_week after fetching matchups (to find weeks with data)
+    requested_week = args.week
 
     # Get user
     console.print(f"[dim]Looking up user {args.username}...[/dim]")
@@ -127,15 +120,51 @@ def run(args: argparse.Namespace, console: Console) -> None:
         team_name = metadata.get("team_name") or u.get("display_name", uid)
         user_team_names[uid] = team_name
 
-    # Fetch matchups for all weeks
-    console.print(f"[dim]Fetching matchups for weeks 1-{max_week}...[/dim]")
+    # Fetch matchups for all weeks (up to 17) and detect which have data
+    console.print("[dim]Fetching matchups...[/dim]")
     weekly_matchups: dict[int, list[dict]] = {}
-    for week in range(1, max_week + 1):
-        weekly_matchups[week] = api.get_matchups(league_id, week)
+    for week in range(1, 18):
+        matchups = api.get_matchups(league_id, week)
+        # Check if this week has actual scoring data
+        has_data = any(
+            m.get("players_points") for m in matchups
+        ) if matchups else False
+        if has_data:
+            weekly_matchups[week] = matchups
+
+    # Determine max week from actual data
+    if requested_week:
+        max_week = requested_week
+    elif weekly_matchups:
+        max_week = max(weekly_matchups.keys())
+    else:
+        max_week = 1
+
+    console.print(f"[dim]Found data for weeks 1-{max_week}[/dim]")
 
     # Get player database
     console.print("[dim]Loading player database...[/dim]")
     players_db = api.get_players("nfl")
+
+    # Build roster_id -> owner_id mapping
+    roster_to_owner: dict[int, str] = {}
+    owner_to_roster_id: dict[str, int] = {}
+    for roster in rosters:
+        roster_id = roster.get("roster_id")
+        owner_id = roster.get("owner_id")
+        if roster_id and owner_id:
+            roster_to_owner[roster_id] = owner_id
+            owner_to_roster_id[owner_id] = roster_id
+
+    def get_all_season_players(roster_id: int) -> list[str]:
+        """Get all players who appeared on a roster throughout the season."""
+        all_players: set[str] = set()
+        for week_matchups in weekly_matchups.values():
+            for matchup in week_matchups:
+                if matchup.get("roster_id") == roster_id:
+                    players = matchup.get("players") or []
+                    all_players.update(players)
+        return list(all_players)
 
     if args.compare:
         # Compare mode: build results for all teams
@@ -144,10 +173,12 @@ def run(args: argparse.Namespace, console: Console) -> None:
 
         for roster in rosters:
             owner_id = roster.get("owner_id")
-            if not owner_id:
+            roster_id = roster.get("roster_id")
+            if not owner_id or not roster_id:
                 continue
             team_name = user_team_names.get(owner_id, "Unknown")
-            roster_players = roster.get("players", [])
+            # Get all players from matchup history
+            roster_players = get_all_season_players(roster_id)
             if roster_players:
                 results = build_roster_performance(
                     roster_players, weekly_matchups, players_db, max_week
@@ -165,18 +196,21 @@ def run(args: argparse.Namespace, console: Console) -> None:
         # Single team mode
         user_roster = None
         team_name = display_name
+        roster_id = None
         for roster in rosters:
             if roster.get("owner_id") == user_id:
                 user_roster = roster
+                roster_id = roster.get("roster_id")
                 team_name = user_team_names.get(user_id, display_name)
                 break
 
-        if not user_roster:
+        if not user_roster or not roster_id:
             raise ValueError("Could not find your roster in this league")
 
-        roster_players = user_roster.get("players", [])
+        # Get all players from matchup history (not just current roster)
+        roster_players = get_all_season_players(roster_id)
         if not roster_players:
-            raise ValueError("Your roster has no players")
+            raise ValueError("No player data found in matchups")
 
         # Build performance data
         console.print("[dim]Calculating positional rankings...[/dim]")
