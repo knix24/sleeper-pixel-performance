@@ -166,6 +166,19 @@ def run(args: argparse.Namespace, console: Console) -> None:
                     all_players.update(players)
         return list(all_players)
 
+    def get_roster_weeks(roster_id: int) -> dict[str, set[int]]:
+        """Get which weeks each player was on the roster."""
+        player_weeks: dict[str, set[int]] = {}
+        for week, week_matchups in weekly_matchups.items():
+            for matchup in week_matchups:
+                if matchup.get("roster_id") == roster_id:
+                    players = matchup.get("players") or []
+                    for player_id in players:
+                        if player_id not in player_weeks:
+                            player_weeks[player_id] = set()
+                        player_weeks[player_id].add(week)
+        return player_weeks
+
     if args.compare:
         # Compare mode: build results for all teams
         console.print("[dim]Calculating positional rankings for all teams...[/dim]")
@@ -212,6 +225,9 @@ def run(args: argparse.Namespace, console: Console) -> None:
         if not roster_players:
             raise ValueError("No player data found in matchups")
 
+        # Get roster membership by week (to show when players joined/left)
+        roster_weeks = get_roster_weeks(roster_id)
+
         # Build performance data
         console.print("[dim]Calculating positional rankings...[/dim]")
         results = build_roster_performance(
@@ -228,6 +244,7 @@ def run(args: argparse.Namespace, console: Console) -> None:
                 max_week,
                 output_path,
                 position_filter=args.positions,
+                roster_weeks=roster_weeks,
             )
             console.print(f"[green]Exported to {output_path}[/green]")
         else:
@@ -240,6 +257,7 @@ def run(args: argparse.Namespace, console: Console) -> None:
                 console,
                 show_points=args.show_points,
                 position_filter=args.positions,
+                roster_weeks=roster_weeks,
             )
 
     console.print(f"[dim]League: {league_name}[/dim]")

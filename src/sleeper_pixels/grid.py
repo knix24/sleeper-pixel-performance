@@ -41,6 +41,7 @@ def render_pixel_grid(
     console: Console | None = None,
     show_points: bool = False,
     position_filter: list[str] | None = None,
+    roster_weeks: dict[str, set[int]] | None = None,
 ) -> None:
     """
     Render a GitHub-style pixel grid showing roster performance.
@@ -48,6 +49,10 @@ def render_pixel_grid(
     Y-axis: Players (grouped by position)
     X-axis: Week numbers
     Color: Performance tier at position
+
+    Args:
+        roster_weeks: Optional dict mapping player_id to set of weeks they were on roster.
+                      Used to distinguish "not on roster" (blank) from "on roster, no data" (·)
     """
     if console is None:
         console = Console()
@@ -112,6 +117,7 @@ def render_pixel_grid(
         row = [f"[dim]{position}[/dim] {name[:15]}"]
 
         weeks_data = player_weeks.get(player_id, {})
+        player_roster_weeks = roster_weeks.get(player_id, set()) if roster_weeks else None
         for week in range(1, max_week + 1):
             if week in weeks_data:
                 result = weeks_data[week]
@@ -122,8 +128,12 @@ def render_pixel_grid(
                     row.append(f"[{color}]{pts:>4}[/{color}]")
                 else:
                     row.append(f"[{color}]{symbol}[/{color}]")
-            else:
+            elif player_roster_weeks is None or week in player_roster_weeks:
+                # On roster but no scoring data (bye week, injury, etc.)
                 row.append("[dim]·[/dim]")
+            else:
+                # Not on roster this week
+                row.append(" ")
 
         table.add_row(*row)
 
@@ -160,6 +170,7 @@ def export_html(
     max_week: int,
     output_path: Path,
     position_filter: list[str] | None = None,
+    roster_weeks: dict[str, set[int]] | None = None,
 ) -> None:
     """Export the pixel grid as an HTML file with proper CSS colors."""
     # Group results by player
@@ -317,6 +328,7 @@ def export_html(
         )
 
         weeks_data = player_weeks.get(player_id, {})
+        player_roster_weeks = roster_weeks.get(player_id, set()) if roster_weeks else None
         for week in range(1, max_week + 1):
             if week in weeks_data:
                 result = weeks_data[week]
@@ -325,10 +337,16 @@ def export_html(
                 html_parts.append(
                     f'                    <td><div class="cell tooltip" style="background-color: {color};" data-tooltip="{tooltip}"></div></td>\n'
                 )
-            else:
+            elif player_roster_weeks is None or week in player_roster_weeks:
+                # On roster but no scoring data
                 color = TIER_HTML_COLORS[None]
                 html_parts.append(
                     f'                    <td><div class="cell" style="background-color: {color};"></div></td>\n'
+                )
+            else:
+                # Not on roster - empty cell
+                html_parts.append(
+                    '                    <td></td>\n'
                 )
 
         html_parts.append("                </tr>\n")
