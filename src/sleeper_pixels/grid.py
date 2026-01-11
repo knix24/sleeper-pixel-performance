@@ -25,11 +25,21 @@ TIER_HTML_COLORS = {
     None: "#f6f8fa",  # No data
 }
 
+# Density blocks - visual distinction by fill density
 TIER_SYMBOLS = {
-    Tier.ELITE: "█",
-    Tier.GREAT: "█",
-    Tier.GOOD: "█",
-    Tier.AVERAGE: "░",
+    Tier.ELITE: "█",  # Full block - Top 5
+    Tier.GREAT: "▓",  # Dark shade - Top 6-10
+    Tier.GOOD: "▒",  # Medium shade - Top 11-15
+    Tier.AVERAGE: "░",  # Light shade - Below top 15
+}
+
+# HTML cell sizes (px) - larger = better performance
+TIER_HTML_SIZES = {
+    Tier.ELITE: 16,
+    Tier.GREAT: 14,
+    Tier.GOOD: 12,
+    Tier.AVERAGE: 10,
+    None: 10,
 }
 
 
@@ -144,13 +154,13 @@ def render_pixel_grid(
 def render_legend(console: Console) -> None:
     """Render the color legend."""
     legend = Text("Legend: ")
-    legend.append("█", style=TIER_COLORS[Tier.ELITE])
+    legend.append(TIER_SYMBOLS[Tier.ELITE], style=TIER_COLORS[Tier.ELITE])
     legend.append(" Top 5  ")
-    legend.append("█", style=TIER_COLORS[Tier.GREAT])
+    legend.append(TIER_SYMBOLS[Tier.GREAT], style=TIER_COLORS[Tier.GREAT])
     legend.append(" Top 10  ")
-    legend.append("█", style=TIER_COLORS[Tier.GOOD])
+    legend.append(TIER_SYMBOLS[Tier.GOOD], style=TIER_COLORS[Tier.GOOD])
     legend.append(" Top 15  ")
-    legend.append("░", style=TIER_COLORS[Tier.AVERAGE])
+    legend.append(TIER_SYMBOLS[Tier.AVERAGE], style=TIER_COLORS[Tier.AVERAGE])
     legend.append(" Below  ")
     legend.append("·", style="dim")
     legend.append(" No data")
@@ -243,12 +253,15 @@ def export_html(
             margin-right: 4px;
         }}
         .cell {{
-            width: 14px;
-            height: 14px;
             border-radius: 2px;
             margin: 1px;
             display: inline-block;
             cursor: pointer;
+            vertical-align: middle;
+        }}
+        td {{
+            vertical-align: middle;
+            text-align: center;
         }}
         .cell:hover {{
             outline: 1px solid #58a6ff;
@@ -329,15 +342,17 @@ def export_html(
             if week in weeks_data:
                 result = weeks_data[week]
                 color = TIER_HTML_COLORS[result.tier]
+                size = TIER_HTML_SIZES[result.tier]
                 tooltip = f"Week {week}: {result.points:.1f} pts (#{result.rank} {position})"
                 html_parts.append(
-                    f'                    <td><div class="cell tooltip" style="background-color: {color};" data-tooltip="{tooltip}"></div></td>\n'
+                    f'                    <td><div class="cell tooltip" style="background-color: {color}; width: {size}px; height: {size}px;" data-tooltip="{tooltip}"></div></td>\n'
                 )
             elif player_roster_weeks is None or week in player_roster_weeks:
                 # On roster but no scoring data
                 color = TIER_HTML_COLORS[None]
+                size = TIER_HTML_SIZES[None]
                 html_parts.append(
-                    f'                    <td><div class="cell" style="background-color: {color};"></div></td>\n'
+                    f'                    <td><div class="cell" style="background-color: {color}; width: {size}px; height: {size}px;"></div></td>\n'
                 )
             else:
                 # Not on roster - empty cell
