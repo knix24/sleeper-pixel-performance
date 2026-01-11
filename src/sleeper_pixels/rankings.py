@@ -84,6 +84,7 @@ def build_roster_performance(
     weekly_matchups: dict[int, list[dict]],
     players_db: dict,
     max_week: int,
+    roster_weeks: dict[str, set[int]] | None = None,
 ) -> list[PlayerWeekResult]:
     """
     Build performance data for all players on a roster across all weeks.
@@ -93,6 +94,8 @@ def build_roster_performance(
         weekly_matchups: Dict mapping week number to matchup data
         players_db: Full player database
         max_week: Maximum week number to process
+        roster_weeks: Optional dict mapping player_id to set of weeks on roster.
+                      If provided, only includes results for weeks player was rostered.
 
     Returns:
         List of PlayerWeekResult for each player/week combination
@@ -108,6 +111,10 @@ def build_roster_performance(
 
         for player_id in roster_players:
             if player_id not in players_db:
+                continue
+
+            # Skip if player wasn't on roster this week
+            if roster_weeks and week not in roster_weeks.get(player_id, set()):
                 continue
 
             player_info = players_db[player_id]

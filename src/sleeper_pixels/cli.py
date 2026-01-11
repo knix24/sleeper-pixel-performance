@@ -228,10 +228,10 @@ def run(args: argparse.Namespace, console: Console) -> None:
         # Get roster membership by week (to show when players joined/left)
         roster_weeks = get_roster_weeks(roster_id)
 
-        # Build performance data
+        # Build performance data (only for weeks player was on roster)
         console.print("[dim]Calculating positional rankings...[/dim]")
         results = build_roster_performance(
-            roster_players, weekly_matchups, players_db, max_week
+            roster_players, weekly_matchups, players_db, max_week, roster_weeks
         )
 
         if args.html:
