@@ -5,51 +5,49 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Build & Development Commands
 
 ```bash
-# Install dependencies
+# Run directly (no install needed)
+./sleeper-pixels <username>
+
+# Or install with pip
 pip install -e .
-
-# Run the tool
 sleeper-pixels <username>
-sleeper-pixels <username> --season 2024 --league <league_id>
 
-# Run directly without installing
-python -m sleeper_pixels.cli <username>
-
-# Examples with options
-sleeper-pixels angus0024 --season 2024 --show-points        # Show actual points
-sleeper-pixels angus0024 --season 2024 -p RB -p WR          # Filter positions
-sleeper-pixels angus0024 --season 2024 --compare            # Compare all teams
-sleeper-pixels angus0024 --season 2024 --html output.html   # Export to HTML
+# Examples
+./sleeper-pixels angus0024 --season 2024 --show-points
+./sleeper-pixels angus0024 --season 2024 -p RB -p WR
+./sleeper-pixels angus0024 --season 2024 --compare
+./sleeper-pixels angus0024 --season 2024 --html output.html
 ```
 
 ## CLI Options
 
 - `--season YEAR` - NFL season year (default: current)
 - `--league ID` - League ID (prompts if not provided)
-- `--week N` - Max week to display (default: 17 for past seasons)
+- `--week N` - Max week to display (auto-detects from matchup data)
 - `--show-points` - Display actual fantasy points instead of symbols
-- `-p, --position POS` - Filter by position (QB, RB, WR, TE, K, DEF); can specify multiple
+- `-p, --position POS` - Filter by position (QB, RB, WR, TE, K, DEF); repeatable
 - `--compare` - Show all teams in league with aggregate weekly performance
-- `--html FILE` - Export to HTML file with GitHub-style colors and hover tooltips
+- `--html FILE` - Export to HTML file with hover tooltips
 
 ## Architecture Overview
 
 Python CLI tool that visualizes fantasy football roster performance using a GitHub-style pixel grid.
 
 **Data Flow:**
-1. `cli.py` - Entry point, orchestrates the workflow and handles all CLI flags
+1. `cli.py` - Entry point, orchestrates workflow, builds roster tenure data
 2. `api.py` - Fetches user, league, roster, and matchup data from Sleeper API
 3. `rankings.py` - Calculates weekly positional rankings from matchup scores
 4. `grid.py` - Renders pixel grid (terminal via Rich, or HTML export)
 
-**Visualization Logic:**
-- Y-axis: Players on roster (grouped by position: QB, RB, WR, TE, K, DEF)
+**Key Features:**
+- Auto-detects weeks with scoring data (doesn't rely on API state)
+- Tracks roster tenure from matchup history (shows all players who were ever on roster)
+- Blank cells = not on roster; `·` = on roster but no stats; colored = performance tier
+
+**Visualization:**
+- Y-axis: Players (sorted by position: QB, RB, WR, TE, K, DEF)
 - X-axis: Week numbers
-- Colors based on positional ranking that week:
-  - Dark green (#216e39): Top 5 at position
-  - Green (#30a14e): Top 6-10
-  - Light green (#9be9a8): Top 11-15
-  - Gray (#ebedf0): Below top 15
+- Colors: bright green (top 5), green (top 10), light green (top 15), gray (below)
 
 ## Sleeper API Notes
 
@@ -58,4 +56,4 @@ Python CLI tool that visualizes fantasy football roster performance using a GitH
 - Rate limit: Stay under 1,000 calls/minute
 - Player database (`/players/nfl`) is ~5MB and cached via `@lru_cache`
 - Matchups contain `players_points` dict mapping player_id to weekly score
-- Rankings are calculated against all rostered players in the league for that week
+- Roster history derived from weekly matchup `players` arrays
