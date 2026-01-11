@@ -8,12 +8,12 @@ from rich.text import Text
 
 from .rankings import PlayerWeekResult, Tier
 
-# GitHub-style colors for terminal
+# Rich terminal colors - more vibrant
 TIER_COLORS = {
-    Tier.ELITE: "green3",  # Dark green - Top 5
-    Tier.GREAT: "green1",  # Green - Top 6-10
-    Tier.GOOD: "pale_green1",  # Light green - Top 11-15
-    Tier.AVERAGE: "grey23",  # Off white/gray - Below top 15
+    Tier.ELITE: "bold bright_green",  # Bright green - Top 5
+    Tier.GREAT: "green",  # Green - Top 6-10
+    Tier.GOOD: "dark_sea_green2",  # Light green - Top 11-15
+    Tier.AVERAGE: "bright_black",  # Dim gray - Below top 15
 }
 
 # HTML colors (GitHub contribution graph style)
@@ -87,13 +87,16 @@ def render_pixel_grid(
         key=lambda x: (position_order.get(x[1][1], 99), x[1][0]),
     )
 
-    # Build the table
+    # Build the table with horizontal lines between rows
+    from rich.box import SIMPLE_HEAD
+
     table = Table(
         title=f"{team_name} - {season} Season Performance",
         show_header=True,
         header_style="bold",
+        show_lines=True,
         padding=(0, 0),
-        collapse_padding=True,
+        box=SIMPLE_HEAD,
     )
 
     # Add player column
@@ -105,14 +108,7 @@ def render_pixel_grid(
         table.add_column(str(week), justify="center", width=col_width)
 
     # Add rows for each player
-    current_position = None
     for player_id, (name, position) in sorted_players:
-        # Add position separator
-        if position != current_position:
-            if current_position is not None:
-                table.add_row(*[""] * (max_week + 1))
-            current_position = position
-
         # Build the row
         row = [f"[dim]{position}[/dim] {name[:15]}"]
 
