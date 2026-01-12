@@ -15,7 +15,6 @@ sleeper-pixels <username>
 # Examples
 ./sleeper-pixels angus0024 --season 2024 --show-points
 ./sleeper-pixels angus0024 --season 2024 -p RB -p WR
-./sleeper-pixels angus0024 --season 2024 --compare
 ./sleeper-pixels angus0024 --season 2024 --html output.html
 ```
 
@@ -26,7 +25,6 @@ sleeper-pixels <username>
 - `--week N` - Max week to display (auto-detects from matchup data)
 - `--show-points` - Display actual fantasy points instead of symbols
 - `-p, --position POS` - Filter by position (QB, RB, WR, TE, K, DEF); repeatable
-- `--compare` - Show all teams in league with aggregate weekly performance
 - `--html FILE` - Export to HTML file with hover tooltips
 
 ## Architecture Overview
