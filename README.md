@@ -4,9 +4,9 @@ Visualize your Sleeper fantasy football roster performance with GitHub-style pix
 
 ![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)
 
-## What It Does
+## Overview
 
-Shows weekly player performance compared to others at their position. Density blocks indicate ranking tier; blank cells show weeks when a player wasn't on your roster.
+Track weekly player performance against positional rankings across the season. Density blocks indicate ranking tiers (top 5, top 10, top 15), while blank cells show weeks when players weren't on your roster.
 
 ```
               Cleveland Browns - 2025 Season Performance
@@ -23,47 +23,62 @@ Shows weekly player performance compared to others at their position. Density bl
 Legend: █ Top 5  ▓ Top 10  ▒ Top 15  ░ Below  · No data
 ```
 
-## Installation
+## Installation & Usage
 
+**Quick Start** (no installation required):
 ```bash
-./sleeper-pixels <username>          # Run directly
-pip install -e . && sleeper-pixels   # Or install first
+./sleeper-pixels <username>
 ```
 
-## Usage
-
+**Or install with pip:**
 ```bash
-./sleeper-pixels <username>                              # Prompts for league
-./sleeper-pixels <username> --season 2024 --league ID    # Specify league
-./sleeper-pixels <username> -p RB -p WR                  # Filter positions
-./sleeper-pixels <username> --show-points                # Show actual points
-./sleeper-pixels <username> --html roster.html           # Export to HTML
+pip install -e .
+sleeper-pixels <username>
 ```
 
-### Options
+**Examples:**
+```bash
+sleeper-pixels angus0024                              # Interactive league selection
+sleeper-pixels angus0024 --season 2024 --league ID    # Specify league directly
+sleeper-pixels angus0024 -p RB -p WR                  # Filter to specific positions
+sleeper-pixels angus0024 --show-points                # Display actual fantasy points
+sleeper-pixels angus0024 --html roster.html           # Export to interactive HTML
+```
+
+## Options
 
 | Flag | Description |
 |------|-------------|
-| `--season YEAR` | NFL season year (default: current) |
+| `--season YEAR` | NFL season year (default: current season) |
 | `--league ID` | League ID (prompts if not provided) |
-| `--week N` | Max week to display |
-| `--show-points` | Show fantasy points instead of symbols |
-| `-p, --position` | Filter by position (QB, RB, WR, TE, K, DEF) |
-| `--html FILE` | Export HTML with hover tooltips |
+| `--week N` | Max week to display (default: auto-detect from data) |
+| `--show-points` | Display fantasy points instead of density symbols |
+| `-p, --position POS` | Filter by position (QB, RB, WR, TE, K, DEF); repeatable |
+| `--html FILE` | Export to interactive HTML file with hover tooltips |
 
-## Reading the Grid
+## Legend
+
+**Terminal symbols:**
 
 | Symbol | Meaning |
 |--------|---------|
 | █ | Top 5 at position |
-| ▓ | Top 6-10 |
-| ▒ | Top 11-15 |
+| ▓ | Top 6-10 at position |
+| ▒ | Top 11-15 at position |
 | ░ | Below top 15 |
-| · | On roster, no stats (bye/injury) |
-| _(blank)_ | Not on roster |
+| · | On roster but no scoring data (bye/injury) |
+| _(blank)_ | Not on roster that week |
 
-**HTML export:** Cell size varies by tier (larger = better performance). Hover for exact points and rank.
+**HTML export:** Variable cell sizes (larger = better performance) with hover tooltips showing exact points and rank.
+
+## Features
+
+- **Auto-detects scoring weeks** from matchup data
+- **Tracks roster tenure** showing exactly when players joined/left your team
+- **Position filtering** to focus on specific roles
+- **Dual output modes** terminal display or interactive HTML export
+- **No authentication** required (uses public Sleeper API)
 
 ## Data Source
 
-[Sleeper API](https://docs.sleeper.com) — no authentication required.
+[Sleeper API](https://docs.sleeper.com)
