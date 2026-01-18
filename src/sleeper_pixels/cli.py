@@ -8,7 +8,7 @@ from rich.console import Console
 from rich.prompt import Prompt
 
 from .api import SleeperAPI
-from .grid import export_html, render_compare_grid, render_pixel_grid
+from .grid import export_html, render_pixel_grid
 from .rankings import build_roster_performance
 
 
@@ -46,11 +46,6 @@ def main() -> int:
         dest="positions",
         choices=["QB", "RB", "WR", "TE", "K", "DEF"],
         help="Filter by position (can specify multiple: -p RB -p WR)",
-    )
-    parser.add_argument(
-        "--compare",
-        action="store_true",
-        help="Compare all teams in the league instead of just your team",
     )
     parser.add_argument(
         "--html",
@@ -179,86 +174,59 @@ def run(args: argparse.Namespace, console: Console) -> None:
                         player_weeks[player_id].add(week)
         return player_weeks
 
-    if args.compare:
-        # Compare mode: build results for all teams
-        console.print("[dim]Calculating positional rankings for all teams...[/dim]")
-        all_team_results: dict[str, list] = {}
-
-        for roster in rosters:
-            owner_id = roster.get("owner_id")
+    # Find user's roster
+    user_roster = None
+    team_name = display_name
+    roster_id = None
+    for roster in rosters:
+        if roster.get("owner_id") == user_id:
+            user_roster = roster
             roster_id = roster.get("roster_id")
-            if not owner_id or not roster_id:
-                continue
-            team_name = user_team_names.get(owner_id, "Unknown")
-            # Get all players from matchup history
-            roster_players = get_all_season_players(roster_id)
-            if roster_players:
-                results = build_roster_performance(
-                    roster_players, weekly_matchups, players_db, max_week
-                )
-                all_team_results[team_name] = results
+            team_name = user_team_names.get(user_id, display_name)
+            break
 
-        render_compare_grid(
-            all_team_results,
+    if not user_roster or not roster_id:
+        raise ValueError("Could not find your roster in this league")
+
+    # Get all players from matchup history (not just current roster)
+    roster_players = get_all_season_players(roster_id)
+    if not roster_players:
+        raise ValueError("No player data found in matchups")
+
+    # Get roster membership by week (to show when players joined/left)
+    roster_weeks = get_roster_weeks(roster_id)
+
+    # Build performance data (only for weeks player was on roster)
+    console.print("[dim]Calculating positional rankings...[/dim]")
+    results = build_roster_performance(
+        roster_players, weekly_matchups, players_db, max_week, roster_weeks
+    )
+
+    if args.html:
+        # Export to HTML
+        output_path = Path(args.html)
+        export_html(
+            results,
+            team_name,
+            season,
+            max_week,
+            output_path,
+            position_filter=args.positions,
+            roster_weeks=roster_weeks,
+        )
+        console.print(f"[green]Exported to {output_path}[/green]")
+    else:
+        # Render to terminal
+        render_pixel_grid(
+            results,
+            team_name,
             season,
             max_week,
             console,
+            show_points=args.show_points,
             position_filter=args.positions,
+            roster_weeks=roster_weeks,
         )
-    else:
-        # Single team mode
-        user_roster = None
-        team_name = display_name
-        roster_id = None
-        for roster in rosters:
-            if roster.get("owner_id") == user_id:
-                user_roster = roster
-                roster_id = roster.get("roster_id")
-                team_name = user_team_names.get(user_id, display_name)
-                break
-
-        if not user_roster or not roster_id:
-            raise ValueError("Could not find your roster in this league")
-
-        # Get all players from matchup history (not just current roster)
-        roster_players = get_all_season_players(roster_id)
-        if not roster_players:
-            raise ValueError("No player data found in matchups")
-
-        # Get roster membership by week (to show when players joined/left)
-        roster_weeks = get_roster_weeks(roster_id)
-
-        # Build performance data (only for weeks player was on roster)
-        console.print("[dim]Calculating positional rankings...[/dim]")
-        results = build_roster_performance(
-            roster_players, weekly_matchups, players_db, max_week, roster_weeks
-        )
-
-        if args.html:
-            # Export to HTML
-            output_path = Path(args.html)
-            export_html(
-                results,
-                team_name,
-                season,
-                max_week,
-                output_path,
-                position_filter=args.positions,
-                roster_weeks=roster_weeks,
-            )
-            console.print(f"[green]Exported to {output_path}[/green]")
-        else:
-            # Render to terminal
-            render_pixel_grid(
-                results,
-                team_name,
-                season,
-                max_week,
-                console,
-                show_points=args.show_points,
-                position_filter=args.positions,
-                roster_weeks=roster_weeks,
-            )
 
     console.print(f"[dim]League: {league_name}[/dim]")
 

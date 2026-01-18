@@ -37,7 +37,6 @@ pip install -e . && sleeper-pixels   # Or install first
 ./sleeper-pixels <username> --season 2024 --league ID    # Specify league
 ./sleeper-pixels <username> -p RB -p WR                  # Filter positions
 ./sleeper-pixels <username> --show-points                # Show actual points
-./sleeper-pixels <username> --compare                    # All teams in league
 ./sleeper-pixels <username> --html roster.html           # Export to HTML
 ```
 
@@ -50,7 +49,6 @@ pip install -e . && sleeper-pixels   # Or install first
 | `--week N` | Max week to display |
 | `--show-points` | Show fantasy points instead of symbols |
 | `-p, --position` | Filter by position (QB, RB, WR, TE, K, DEF) |
-| `--compare` | Compare all teams in the league |
 | `--html FILE` | Export HTML with hover tooltips |
 
 ## Reading the Grid
