@@ -141,16 +141,6 @@ def run(args: argparse.Namespace, console: Console) -> None:
     console.print("[dim]Loading player database...[/dim]")
     players_db = api.get_players("nfl")
 
-    # Build roster_id -> owner_id mapping
-    roster_to_owner: dict[int, str] = {}
-    owner_to_roster_id: dict[str, int] = {}
-    for roster in rosters:
-        roster_id = roster.get("roster_id")
-        owner_id = roster.get("owner_id")
-        if roster_id and owner_id:
-            roster_to_owner[roster_id] = owner_id
-            owner_to_roster_id[owner_id] = roster_id
-
     def get_all_season_players(roster_id: int) -> list[str]:
         """Get all players who appeared on a roster throughout the season."""
         all_players: set[str] = set()

@@ -2,11 +2,15 @@
 
 from pathlib import Path
 
+from rich.box import SIMPLE_HEAD
 from rich.console import Console
 from rich.table import Table
 from rich.text import Text
 
 from .rankings import PlayerWeekResult, Tier
+
+# Position sort order
+POSITION_ORDER = {"QB": 0, "RB": 1, "WR": 2, "TE": 3, "K": 4, "DEF": 5}
 
 # Rich terminal colors - more vibrant
 TIER_COLORS = {
@@ -43,6 +47,44 @@ TIER_HTML_SIZES = {
 }
 
 
+def _prepare_player_data(
+    results: list[PlayerWeekResult],
+    position_filter: list[str] | None = None,
+) -> tuple[dict[str, dict[int, PlayerWeekResult]], list[tuple[str, tuple[str, str]]]]:
+    """
+    Group results by player and prepare sorted player list.
+
+    Returns:
+        Tuple of (player_weeks dict, sorted_players list)
+        - player_weeks: {player_id: {week: PlayerWeekResult}}
+        - sorted_players: [(player_id, (name, position)), ...] sorted by position then name
+    """
+    player_weeks: dict[str, dict[int, PlayerWeekResult]] = {}
+    player_info: dict[str, tuple[str, str]] = {}
+
+    for result in results:
+        if result.player_id not in player_weeks:
+            player_weeks[result.player_id] = {}
+            player_info[result.player_id] = (result.player_name, result.position)
+        player_weeks[result.player_id][result.week] = result
+
+    # Filter by position if specified
+    if position_filter:
+        player_info = {
+            pid: info
+            for pid, info in player_info.items()
+            if info[1] in position_filter
+        }
+
+    # Sort players by position then name
+    sorted_players = sorted(
+        player_info.items(),
+        key=lambda x: (POSITION_ORDER.get(x[1][1], 99), x[1][0]),
+    )
+
+    return player_weeks, sorted_players
+
+
 def render_pixel_grid(
     results: list[PlayerWeekResult],
     team_name: str,
@@ -67,39 +109,13 @@ def render_pixel_grid(
     if console is None:
         console = Console()
 
-    # Group results by player
-    player_weeks: dict[str, dict[int, PlayerWeekResult]] = {}
-    player_info: dict[str, tuple[str, str]] = {}  # player_id -> (name, position)
+    player_weeks, sorted_players = _prepare_player_data(results, position_filter)
 
-    for result in results:
-        if result.player_id not in player_weeks:
-            player_weeks[result.player_id] = {}
-            player_info[result.player_id] = (result.player_name, result.position)
-        player_weeks[result.player_id][result.week] = result
-
-    if not player_weeks:
+    if not sorted_players:
         console.print("[yellow]No performance data found for this roster.[/yellow]")
         return
 
-    # Filter by position if specified
-    if position_filter:
-        position_filter_upper = [p.upper() for p in position_filter]
-        player_info = {
-            pid: info
-            for pid, info in player_info.items()
-            if info[1] in position_filter_upper
-        }
-
-    # Sort players by position then name
-    position_order = {"QB": 0, "RB": 1, "WR": 2, "TE": 3, "K": 4, "DEF": 5}
-    sorted_players = sorted(
-        player_info.items(),
-        key=lambda x: (position_order.get(x[1][1], 99), x[1][0]),
-    )
-
     # Build the table with horizontal lines between rows
-    from rich.box import SIMPLE_HEAD
-
     table = Table(
         title=f"{team_name} - {season} Season Performance",
         show_header=True,
@@ -179,31 +195,7 @@ def export_html(
     roster_weeks: dict[str, set[int]] | None = None,
 ) -> None:
     """Export the pixel grid as an HTML file with proper CSS colors."""
-    # Group results by player
-    player_weeks: dict[str, dict[int, PlayerWeekResult]] = {}
-    player_info: dict[str, tuple[str, str]] = {}
-
-    for result in results:
-        if result.player_id not in player_weeks:
-            player_weeks[result.player_id] = {}
-            player_info[result.player_id] = (result.player_name, result.position)
-        player_weeks[result.player_id][result.week] = result
-
-    # Filter by position if specified
-    if position_filter:
-        position_filter_upper = [p.upper() for p in position_filter]
-        player_info = {
-            pid: info
-            for pid, info in player_info.items()
-            if info[1] in position_filter_upper
-        }
-
-    # Sort players
-    position_order = {"QB": 0, "RB": 1, "WR": 2, "TE": 3, "K": 4, "DEF": 5}
-    sorted_players = sorted(
-        player_info.items(),
-        key=lambda x: (position_order.get(x[1][1], 99), x[1][0]),
-    )
+    player_weeks, sorted_players = _prepare_player_data(results, position_filter)
 
     # Build HTML
     html_parts = [

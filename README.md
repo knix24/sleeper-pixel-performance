@@ -46,7 +46,7 @@ pip install -e . && sleeper-pixels   # Or install first
 |------|-------------|
 | `--season YEAR` | NFL season year (default: current) |
 | `--league ID` | League ID (prompts if not provided) |
-| `--week N` | Max week to display |
+| `--week N` | Max week to display (auto-detects if omitted) |
 | `--show-points` | Show fantasy points instead of symbols |
 | `-p, --position` | Filter by position (QB, RB, WR, TE, K, DEF) |
 | `--html FILE` | Export HTML with hover tooltips |
